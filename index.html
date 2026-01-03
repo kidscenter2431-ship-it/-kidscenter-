@@ -1,0 +1,362 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kids Center</title>
+  <style>
+    /* نفس الـ CSS الموجود عندك بالضبط */
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #EDEDED;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, #000000, #7e7c7b, #fffeff);
+      background-size: 400% 400%;
+      z-index: -1;
+      animation: gradientMove 15s infinite;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .container {
+      background-color: rgba(34, 34, 34, 0.9);
+      padding: 25px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 100%;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      width: 650px;
+    }
+
+    .btn {
+      display: inline-block;
+      background-color: #00bfae;
+      color: white;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 40px;
+      cursor: pointer;
+      text-decoration: none;
+      margin: 15px 0;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      background: linear-gradient(45deg, #000000, #7e7c7b, #fffeff);
+      width: 400px;
+    }
+
+    .btn:hover {
+      background-color: #01b19b;
+      transform: translateY(-5px);
+    }
+
+    .game-section {
+      background-color: rgba(42, 42, 42, 0.9);
+      padding: 25px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .game-section input,
+    .game-section select {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 2px solid #444;
+      background-color: #333;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .hidden { display: none; }
+    .problem { font-size: 2rem; margin: 15px 0; }
+    .incorrect-answers {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="settings" class="game-section">
+      <h2>Kids Center</h2>
+      <label for="playerName">Name:</label>
+      <input type="text" id="playerName" placeholder="Enter your name" required />
+      <label for="time">Time (minutes):</label>
+      <input type="number" id="time" value="1" min="1" />
+      <label for="questions">Number of Questions:</label>
+      <input type="number" id="questions" value="10" min="1" />
+      <label for="digitsPart1">Number of Digits (Part 1):</label>
+      <select id="digitsPart1">
+        <option value="1">1 Digit</option>
+        <option value="2">2 Digits</option>
+        <option value="3">3 Digits</option>
+        <option value="4">4 Digits</option>
+        <option value="5">5 Digits</option>
+      </select>
+      <label for="digitsPart2">Number of Digits (Part 2):</label>
+      <select id="digitsPart2">
+        <option value="1">1 Digit</option>
+        <option value="2">2 Digits</option>
+        <option value="3">3 Digits</option>
+        <option value="4">4 Digits</option>
+        <option value="5">5 Digits</option>
+      </select>
+      <label for="operationType">Operation Type:</label>
+      <select id="operationType">
+        <option value="multiplication">Multiplication Only</option>
+        <option value="division">Division Only</option>
+        <option value="both">Both</option>
+      </select>
+      <button class="btn" id="start">Start Game</button>
+    </div>
+
+    <div id="game" class="game-section hidden">
+      <h2>Kids Center</h2>
+      <div class="timer">Time Left: <span id="time-left">0</span> seconds</div>
+      <div class="problem"><span id="problem"></span></div>
+      <input type="number" id="answer" placeholder="Your Answer" />
+      <br />
+      <button class="btn" id="submit">Submit Answer</button>
+    </div>
+
+    <div id="result" class="game-section hidden">
+      <h2>Game Over!</h2>
+      <p id="result-text">You answered 0 out of 10 questions correctly!</p>
+      <p id="time-spent"></p>
+      <div id="incorrect-answers" class="incorrect-answers hidden">
+        <h3>Incorrect Answers:</h3>
+        <ul id="incorrect-answers-list"></ul>
+      </div>
+      <button class="btn" id="restart">Restart Game</button>
+    </div>
+  </div>
+
+  <script>
+    const playerNameInput = document.getElementById('playerName');
+    const operationTypeSelect = document.getElementById('operationType');
+ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBocXRhZHRodXdubWx6Y3dzYWlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NjA4NDgsImV4cCI6MjA2NzEzNjg0OH0.arsf5I4ZGRVaaa0XwiCm9fQ5UNC4Zno4ztUlHq27Im4';
+  const SUPABASE_URL = 'https://phqtadthuwnmlzcwsair.supabase.co';
+   async function saveResultToSupabase(name, score, totalQuestions, timeTakenFormatted, formattedDate, operationType, problem) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/multiply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        name: name,
+        score: score,
+        total_questions: totalQuestions,
+        time_taken: timeTakenFormatted,
+        timestamp: formattedDate,
+        operation_type: operationType,
+        problem: problem // ✅ الإضافة هنا
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("⚠️ Failed:", response.status, errorText);
+      alert("Failed to save result.");
+    } else {
+      console.log("✅ Saved to Supabase");
+    }
+  } catch (err) {
+    console.error("💥 Error:", err);
+    alert("Saving error.");
+  }
+}
+
+
+    // باقي المتغيرات العامة
+    const settingsSection = document.getElementById('settings');
+    const gameSection = document.getElementById('game');
+    const resultSection = document.getElementById('result');
+    const timeInput = document.getElementById('time');
+    const questionsInput = document.getElementById('questions');
+    const digitsPart1Select = document.getElementById('digitsPart1');
+    const digitsPart2Select = document.getElementById('digitsPart2');
+    const startButton = document.getElementById('start');
+    const timeLeftDisplay = document.getElementById('time-left');
+    const problemDisplay = document.getElementById('problem');
+    const answerInput = document.getElementById('answer');
+    const submitButton = document.getElementById('submit');
+    const resultText = document.getElementById('result-text');
+    const timeSpentDisplay = document.getElementById('time-spent');
+    const restartButton = document.getElementById('restart');
+    const incorrectAnswersList = document.getElementById('incorrect-answers-list');
+    const incorrectAnswersSection = document.getElementById('incorrect-answers');
+
+    let timer, timeLeft, currentProblem, currentAnswer, score = 0, totalQuestions, questionsAnswered = 0;
+    let startTime;
+    let incorrectAnswers = [];
+const generateRandomNumber = (digits) => {
+  let num;
+  do {
+    const min = Math.pow(10, digits - 1);
+    const max = Math.pow(10, digits) - 1;
+    num = Math.floor(Math.random() * (max - min + 1)) + min;
+  } while (num === 1); // 👈 يمنع رقم 1
+  return num;
+};
+
+    function formatTimeTaken(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function getFormattedDate(date) {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function startGame() {
+      if (parseInt(timeInput.value) < 1 || parseInt(questionsInput.value) < 1) {
+        alert("Enter valid time and questions.");
+        return;
+      }
+
+      startTime = Date.now();
+      timeLeft = timeInput.value * 60;
+      totalQuestions = parseInt(questionsInput.value);
+      score = 0;
+      questionsAnswered = 0;
+      incorrectAnswers = [];
+
+      incorrectAnswersList.innerHTML = "";
+      incorrectAnswersSection.classList.add('hidden');
+
+      settingsSection.classList.add('hidden');
+      gameSection.classList.remove('hidden');
+      timeLeftDisplay.textContent = timeLeft;
+
+      timer = setInterval(() => {
+        if (--timeLeft <= 0) endGame();
+        timeLeftDisplay.textContent = timeLeft;
+      }, 1000);
+      nextProblem();
+      answerInput.value = '';
+      answerInput.focus();
+    }
+
+    restartButton.addEventListener('click', () => {
+      resultSection.classList.add('hidden');
+      settingsSection.classList.remove('hidden');
+      incorrectAnswersList.innerHTML = "";
+      incorrectAnswersSection.classList.add('hidden');
+      answerInput.value = '';
+    });
+
+    function nextProblem() {
+      const num1 = generateRandomNumber(parseInt(digitsPart1Select.value));
+      const num2 = generateRandomNumber(parseInt(digitsPart2Select.value));
+      const op = operationTypeSelect.value;
+      if (op === "multiplication" || (op === "both" && Math.random() < 0.5)) {
+        currentProblem = `${num1} × ${num2}`;
+        currentAnswer = num1 * num2;
+      } else {
+        const dividend = num1 * num2;
+        currentProblem = `${dividend} ÷ ${num1}`;
+        currentAnswer = num2;
+      }
+      problemDisplay.textContent = currentProblem;
+    }
+
+ function endGame() {
+  clearInterval(timer);
+  const endTime = Date.now();
+  const timeSpentSeconds = Math.floor((endTime - startTime) / 1000);
+  const timeSpentFormatted = formatTimeTaken(timeSpentSeconds);
+  gameSection.classList.add('hidden');
+  resultSection.classList.remove('hidden');
+  resultText.textContent = `You answered ${score} out of ${totalQuestions} questions correctly!`;
+  timeSpentDisplay.textContent = `Time Spent: ${timeSpentFormatted}`;
+
+  if (incorrectAnswers.length > 0) {
+    incorrectAnswersSection.classList.remove('hidden');
+    incorrectAnswersList.innerHTML = '';
+    incorrectAnswers.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = `${item.problem} = ${item.correctAnswer}`;
+      incorrectAnswersList.appendChild(li);
+    });
+  }
+
+  const playerName = playerNameInput.value.trim();
+  const operationType = operationTypeSelect.value;
+  const today = new Date();
+  const formattedDate = getFormattedDate(today);
+
+  // ✅ هنا الحلّ
+  saveResultToSupabase(
+    playerName,
+    score,
+    totalQuestions,
+    timeSpentFormatted,
+    formattedDate,
+    operationType,
+    currentProblem
+  );
+}
+
+
+    startButton.addEventListener('click', startGame);
+
+    submitButton.addEventListener('click', () => {
+      const userAnswerRaw = answerInput.value.trim();
+      if (userAnswerRaw === '') return alert("Enter answer.");
+      const userAnswer = parseInt(userAnswerRaw);
+      if (isNaN(userAnswer)) return alert("Enter a number.");
+      if (userAnswer === currentAnswer) score++;
+      else incorrectAnswers.push({ problem: currentProblem, correctAnswer: currentAnswer });
+
+      questionsAnswered++;
+      if (questionsAnswered >= totalQuestions) {
+        endGame();
+      } else {
+        answerInput.value = '';
+        nextProblem();
+        answerInput.focus();
+      }
+    });
+
+    answerInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        submitButton.click();
+      }
+    });
+  </script>
+<script src="https://www.drv.tw/inc/wd.js?s=yl7zipq6srdhnih9eabkzw"></script></body>
+</html>
